@@ -1,6 +1,8 @@
 import { Component } from "react";
 import Notiflix from 'notiflix';
+import { Notify } from "notiflix";
 import { fetchImages } from "components/api";
+import { ImageGallery } from "components/ImageGallery/ImageGallery";
 
 
 
@@ -8,7 +10,8 @@ export class App extends Component {
   state = {
     query: '',
     images: [],
-    page: 1 
+    page: 1, 
+    loading: false,
   }
 
   changeQuery = (newQuery) => {
@@ -18,7 +21,7 @@ export class App extends Component {
     this.setState({
       query: `${Date.now()}/${newQuery}`,
       images: [], 
-      page: 1
+      page: 1, 
     })
   }
   
@@ -27,12 +30,15 @@ export class App extends Component {
       const updateQuery = this.state.query.slice(this.state.query.indexOf('/') + 1)
       // HTTP запрос за query
       // this/setState({images: результат запроса })
-    }
+       this.setState({loading: true})
 
-    const images = await fetchImages();
-    this.setState({images})
-    
+      const images = await fetchImages();
+      this.setState({ images, loading: false, })
+      console.log(images);
+
+    }
   }
+
 
   handleLoadMore = () => {
     this.setState(prevState => ({ page: prevState.page + 1 }))
@@ -41,6 +47,7 @@ export class App extends Component {
 
 
   render() {
+    // const { query, images, page, loading } = this.state;
     return <div>
       <div>
         <form onSubmit={(evt) => {
@@ -51,7 +58,9 @@ export class App extends Component {
           <button type="submit">Submit</button>
       </form>
       </div>
-      <div>Gallery</div>
+      <div>
+        <ImageGallery images={this.state.images} />
+      </div>
       <div>
         <button onClick={this.handleLoadMore}>Load more</button>
       </div>
