@@ -1,12 +1,11 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import Notiflix from 'notiflix';
-import { fetchImages } from '../api';
-
+import { fetchImages } from 'components/api';
+import { ImageGallery } from 'components/ImageGallery/ImageGallery';
 import { SearchBar } from 'components/Searchbar/Searchbar';
-import { ImageGallery } from '../ImageGallery/ImageGallery';
-import { Button } from '../Button/Button';
-import { Loader } from '../Loader/Loader';
+import { Loader } from 'components/Loader/Loader';
 import { Container } from './App.styled';
+import { Button } from 'components/Button/Button';
 
 export class App extends Component {
   state = {
@@ -14,6 +13,7 @@ export class App extends Component {
     images: [],
     page: 1,
     loading: false,
+    noResults: false,
     totalPages: 0,
   };
 
@@ -21,7 +21,6 @@ export class App extends Component {
     if (newQuery === this.state.query) {
       return Notiflix.Notify.failure('Потрібні параметри пошуку');
     }
-
     this.setState({
       query: `${Date.now()}/${newQuery}`,
       images: [],
@@ -34,8 +33,8 @@ export class App extends Component {
       prevState.query !== this.state.query ||
       prevState.page !== this.state.page
     ) {
-      const updateQuery = this.state.query.slice(
-        this.state.query.indexOf('/') + 1
+      const updateQuery = prevState.query.slice(
+        prevState.query.indexOf('/') + 1
       );
 
       this.setState({ loading: true });
@@ -56,7 +55,6 @@ export class App extends Component {
         }));
       } catch (error) {
         console.log(error);
-        this.setState({ loading: false });
       }
     }
   }
@@ -67,22 +65,23 @@ export class App extends Component {
   };
 
   render() {
+    const { images, loading, page, totalPages } = this.state;
     return (
       <Container>
         <div>
           <SearchBar onSubmit={this.changeQuery} />
         </div>
         <div>
-          <ImageGallery images={this.state.images} />
+          <ImageGallery images={images} />
         </div>
-        {this.state.loading && <Loader />}
+        {loading && <Loader />}
         <div>
-          {this.state.images.length !== 0 &&
-            this.state.totalPages !== this.state.page && (
-              <Button onClick={this.handleLoadMore} />
-            )}
+          {images.length !== 0 && totalPages !== page && (
+            <Button onClick={this.handleLoadMore} />
+          )}
         </div>
       </Container>
     );
   }
 }
+ы;
