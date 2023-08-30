@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useEffect, useState } from 'react';
 import Notiflix from 'notiflix';
 import { fetchImages } from '../api';
 
@@ -8,81 +8,89 @@ import { Button } from '../Button/Button';
 import { Loader } from '../Loader/Loader';
 import { Container } from './App.styled';
 
-export class App extends Component {
-  state = {
-    query: '',
-    images: [],
-    page: 1,
-    loading: false,
-    totalPages: 0,
-  };
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
 
-  changeQuery = newQuery => {
-    if (newQuery === this.state.query) {
+  const changeQuery = newQuery => {
+    if (newQuery === query) {
       return Notiflix.Notify.failure('Потрібні параметри пошуку');
     }
-
-    this.setState({
-      query: `${Date.now()}/${newQuery}`,
-      images: [],
-      page: 1,
-    });
+    setQuery(`${Date.now()}/${newQuery}`);
+    setImages([]);
+    setPage(1);
   };
 
-  async componentDidUpdate(prevProps, prevState) {
-    if (
-      prevState.query !== this.state.query ||
-      prevState.page !== this.state.page
-    ) {
-      const updateQuery = this.state.query.slice(
-        this.state.query.indexOf('/') + 1
-      );
-
-      this.setState({ loading: true });
-
+  useEffect(() => {
+    if (query === '') return;
+    if (prevState.query !== query || prevState.page !== page) {
+      const updateQuery = query.slice(query.indexOf('/') + 1);
+      setLoading(true);
       try {
-        const images = await fetchImages(updateQuery, this.state.page);
-
-        if (images.hits.length === 0) {
+        const getImages = await fetchImages(updateQuery, page);
+        if (getImages.hits.length === 0) {
           Notiflix.Notify.failure('Таких фото не знайдено!');
-          this.setState({
-            loading: false,
-          });
+          setLoading(false)
         }
-        this.setState(prevState => ({
-          images: [...prevState.images, ...images.hits],
-          loading: false,
-          totalPages: Math.ceil(images.totalHits / 12),
-        }));
+        setImages(prevState => [...prevState, ...getImages.hits])
+        setLoading(false)
+        setTotalPages(Math.ceil(getImages.totalHits / 12));
+
       } catch (error) {
         console.log(error);
-        this.setState({ loading: false });
+        setLoading(false);
       }
     }
-  }
+  }, [query, page]);
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
-    this.setState({ loading: true });
+  useEffect(() => {
+  const fetchData = async () => {
+    if (query === '') return;
+    setImages(prevState => {
+      if (prevState.query !== query || prevState.page !== page) {
+        const updateQuery = query.slice(query.indexOf('/') + 1);
+        setLoading(true);
+        try {
+          const getImages = await fetchImages(updateQuery, page);
+          if (getImages.hits.length === 0) {
+            Notiflix.Notify.failure('Таких фото не знайдено!');
+          }
+          return [...prevState, ...getImages.hits];
+        } catch (error) {
+          console.log(error);
+        } finally {
+          setLoading(false);
+        }
+      }
+      return prevState;
+    });
+    setTotalPages(prevState => Math.ceil(getImages.totalHits / 12));
+  };
+  fetchData();
+}, [query, page]);
+
+  const handleLoadMore = () => {
+    setPage(prevState => prevState + 1);
+    setLoading(true);
   };
 
-  render() {
-    return (
-      <Container>
-        <div>
-          <SearchBar onSubmit={this.changeQuery} />
-        </div>
-        <div>
-          <ImageGallery images={this.state.images} />
-        </div>
-        {this.state.loading && <Loader />}
-        <div>
-          {this.state.images.length !== 0 &&
-            this.state.totalPages !== this.state.page && (
-              <Button onClick={this.handleLoadMore} />
-            )}
-        </div>
-      </Container>
-    );
-  }
-}
+  return (
+    <Container>
+      <div>
+        <SearchBar onSubmit={changeQuery} />
+      </div>
+      <div>
+        <ImageGallery images={images} />
+      </div>
+      {loading && <Loader />}
+      <div>
+        {images.length !== 0 && totalPages !== page && (
+          <Button onClick={handleLoadMore} />
+        )}
+      </div>
+    </Container>
+  );
+};
